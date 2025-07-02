@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
+
+body {
+  font-family: 'Quicksand', sans-serif;
+}
+
+.custom-swiper-pagination .swiper-pagination-bullet {
+  background-color: #d1d5db; /* gray-300 */
+  opacity: 1;
+}
+
+.custom-swiper-pagination .swiper-pagination-bullet-active {
+  background-color: #f97316; /* orange-500 */
+}
