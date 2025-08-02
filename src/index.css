@@ -7,10 +7,69 @@ body {
 }
 
 .custom-swiper-pagination .swiper-pagination-bullet {
-  background-color: #d1d5db; /* gray-300 */
+  background-color: #d1d5db;
+  /* gray-300 */
   opacity: 1;
 }
 
 .custom-swiper-pagination .swiper-pagination-bullet-active {
-  background-color: #f97316; /* orange-500 */
+  background-color: #f97316;
+  /* orange-500 */
+}
+
+/* === Shine effect for Top 1 user === */
+.shine-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(120deg,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0.6) 50%,
+      rgba(255, 255, 255, 0.3) 100%);
+  transform: skewX(-20deg);
+  animation: shine 2s infinite;
+  pointer-events: none;
+  /* không ảnh hưởng hover/click */
+}
+
+@keyframes shine {
+  0% {
+    left: -75%;
+  }
+
+  100% {
+    left: 125%;
+  }
+}
+
+@keyframes flame-flicker {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+    filter: drop-shadow(0 0 6px #f97316);
+    opacity: 1;
+  }
+  25% {
+    transform: rotate(3deg) translateY(-2%);
+    filter: drop-shadow(0 0 12px #fb923c);
+    opacity: 0.9;
+  }
+  50% {
+    transform: rotate(-2deg) translateY(-4%);
+    filter: drop-shadow(0 0 18px #f97316);
+    opacity: 0.95;
+  }
+  75% {
+    transform: rotate(4deg) translateY(-1%);
+    filter: drop-shadow(0 0 10px #fb923c);
+    opacity: 0.85;
+  }
+}
+
+.flame-realistic {
+  animation: flame-flicker 1.6s infinite ease-in-out;
+  will-change: transform, filter, opacity;
+  transform-origin: bottom center;
 }

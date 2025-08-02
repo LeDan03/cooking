@@ -15,13 +15,13 @@ const usePersonalStore = create(
       setLovedRecipes: (list) =>
         set((state) => {
           if (shallow(state.lovedRecipes, list)) return state; // Không cập nhật nếu dữ liệu giống nhau
-          console.log('Updating lovedRecipes:', list);
+          // console.log('Updating lovedRecipes:', list);
           return { lovedRecipes: list };
         }),
       setSavedRecipes: (list) =>
         set((state) => {
           if (shallow(state.savedRecipes, list)) return state; // Không cập nhật nếu dữ liệu giống nhau
-          console.log('Updating savedRecipes:', list);
+          // console.log('Updating savedRecipes:', list);
           return { savedRecipes: list };
         }),
       setFollowers: (list) =>
@@ -36,6 +36,13 @@ const usePersonalStore = create(
           console.log('Updating followees:', list);
           return { followees: list };
         }),
+
+      clearStore: () => ({
+        lovedRecipes: [],
+        savedRecipes: [],
+        followers: [],
+        followees: []
+      }),
 
       /* ---------- PATCHERS ---------- */
       /**
@@ -61,7 +68,8 @@ const usePersonalStore = create(
           console.log('Patching savedRecipes:', newSavedRecipes);
           return { savedRecipes: newSavedRecipes };
         }),
-    }),
+    })
+    ,
     {
       name: 'personal-storage',
       storage: {

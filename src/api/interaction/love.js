@@ -9,7 +9,7 @@ const loveResponse = async(recipeId)=>{
         }
         else return false;
     } catch (error) {
-        console.error('/save failed', error);
+        console.warn('/save failed', error);
         return null;
     }
 }

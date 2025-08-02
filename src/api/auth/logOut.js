@@ -5,7 +5,7 @@ const logOutResponse = async () => {
         const response = await axiosClient.post("/api/accounts/auth/logOut");
         return response;
     } catch (error) {
-        console.error("/logOut failed", error);
+        console.warn("/logOut failed", error);
     }
 }
 

@@ -1,5 +1,5 @@
 import { HttpStatusCode } from "axios";
-import axiosClient from "../axiosClient";
+import axiosClient from "../../axiosClient";
 
 const createRecipeResponse = async(recipe)=>{
     try {

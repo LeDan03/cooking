@@ -4,7 +4,9 @@ const path = {
     REGISTER:"/register",
     PERSONAL:"/personal",
     RECIPEDETAIL:"/recipe-detail",
-    CREATERECIPE:"/create-recipe"
+    CREATERECIPE:"/create-recipe",
+    ADMIN:"/manage",
+    SEARCHACCOUNT:"/accounts"
 };
 
 export default path;

@@ -1,31 +1,53 @@
 import axios from "axios";
 import path from "../utils/path";
+import useAuthStore from "../store/useAuthStore";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
+// instance chính
 const axiosClient = axios.create({
-    baseURL: "http://localhost:8080",
-    headers: {
-        "Content-Type": "application/json",
-    },
-    withCredentials: true,
+  baseURL,
+  headers: { "Content-Type": "application/json" },
+  withCredentials: true,
+});
+
+// instance chuyên refresh, KHÔNG interceptor
+const refreshClient = axios.create({
+  baseURL,
+  withCredentials: true,
 });
 
 axiosClient.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        if (error.response?.status === 401 && !error.config._retry) {
-            try {
-                error.config._retry = true; // tránh vòng lặp vô hạn
-                await axiosClient.post("/auth/refresh-access-token"); // gọi API refresh token
-                return axiosClient(error.config); // gọi lại request gốc
-            } catch (refreshError) {
-                console.error("Refresh token failed:", refreshError);
-                window.location.href = path.LOGIN; 
-            }
-        }
+  (res) => res,
+  async (error) => {
+    const originalRequest = error.config;
 
-        console.error("API error:", error);
-        return Promise.reject(error);
+    const currentUser = useAuthStore.getState().currentUser;
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes("/auth/refresh-access-token") &&
+      currentUser // ❗ chỉ gọi refresh nếu đang login
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        await refreshClient.post("/api/accounts/auth/refresh-access-token");
+        console.log("Refresh token thành công. Gọi lại request gốc...");
+
+        return axiosClient(originalRequest);
+      } catch (err) {
+        console.error("Refresh token failed:", err);
+        // Reset state trước khi redirect
+        useAuthStore.getState().setCurrentUser(null);
+        window.location.href = path.LOGIN;
+        return Promise.reject(err);
+      }
     }
+
+    return Promise.reject(error);
+  }
 );
 
 export default axiosClient;

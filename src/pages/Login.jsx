@@ -12,9 +12,9 @@ import myData from '../api/personal/me';
 const Login = () => {
   const navigate = useNavigate();
   const setCurrentUser = useAuthStore((state) => state.setCurrentUser);
-
-
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -29,17 +29,29 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await emailLoginResult(formData);
+    setIsLoading(true);
+    try {
+      const result = await emailLoginResult(formData);
 
-    if (result.status === HttpStatusCode.Ok) {
-      const userData = await myData();
-      setCurrentUser(userData);
-      alert("Đăng nhập thành công!");
-      navigate(path.HOME);
-    } else {
-      // alert("Đăng nhập thất bại!");
+      if (result.status === HttpStatusCode.Ok) {
+        const userData = await myData();
+        setCurrentUser(userData);
+        if (userData.role === 'ADMIN') {
+          navigate(path.ADMIN);
+        } else {
+          navigate(path.HOME);
+        }
+      } else {
+        // alert("Đăng nhập thất bại!");
+      }
+    } catch (error) {
+      console.error(error);
+      // alert("Có lỗi xảy ra!");
+    } finally {
+      setIsLoading(false); // Luôn tắt loading
     }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50">
@@ -116,10 +128,19 @@ const Login = () => {
           {/* Submit button */}
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-amber-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+            disabled={isLoading}
+            className={`w-full flex items-center justify-center bg-gradient-to-r from-orange-500 to-amber-500 text-white py-3 px-4 rounded-lg font-semibold shadow-lg transition-all duration-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:from-orange-600 hover:to-amber-600 transform hover:scale-105'
+              }`}
           >
-            Đăng nhập
+            {isLoading && (
+              <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+            )}
+            {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
+
         </form>
 
         {/* Divider */}
@@ -133,7 +154,7 @@ const Login = () => {
         </div>
 
         {/* Social login */}
-        <div className="space-y-3">
+        {/* <div className="space-y-3">
           <button className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -150,7 +171,7 @@ const Login = () => {
             </svg>
             <span className="text-gray-700 font-medium">Đăng nhập với Facebook</span>
           </button>
-        </div>
+        </div> */}
 
         {/* Sign up link */}
         <p className="text-center mt-6 text-gray-600">

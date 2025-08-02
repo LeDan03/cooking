@@ -11,7 +11,7 @@ const savedRecipesResponse = async()=>{
             return [];
         }
     } catch (error) {
-        console.error('/saved-recipes failed', error);
+        console.warn('/saved-recipes failed', error);
         return null;
     }
 }

@@ -10,12 +10,23 @@ const myData = async () => {
     }
 }
 
-export const updateAvt = async ({ username, newAvtUrl }) => {
+export const updateAvt = async (avatarDto) => {
     try {
-        const response = await axiosClient.put('/api/accounts/me', { username: username, avatarUrl: newAvtUrl });
+        const response = await axiosClient.put('/api/accounts/me/avatar', avatarDto);
+        console.log("Update avt response:", response.data);
+        return response; // Trả về dữ liệu từ server nếu có
+    } catch (error) {
+        console.error("/me update avt failed", error.response?.data || error.message);
+        return error.response.data;
+    }
+};
+
+export const updateUsername = async ({ newUsername }) => {
+    try {
+        const response = await axiosClient.put('/api/accounts/me/username', { newUsername: newUsername });
         return response;
     } catch (error) {
-        console.error("/me update avt failed", error);
+        console.error("/me update username failed", error);
         return false;
     }
 }

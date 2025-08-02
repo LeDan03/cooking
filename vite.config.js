@@ -7,4 +7,8 @@ export default defineConfig({
   css: {
     postcss: './postcss.config.mjs', // Hoặc './postcss.config.cjs' nếu dùng CommonJS
   },
+  server: {
+    host: '0.0.0.0', // Cho phép truy cập từ IP LAN
+    port: 5173
+  }
 });

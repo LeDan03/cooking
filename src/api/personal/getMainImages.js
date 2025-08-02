@@ -13,7 +13,7 @@ const mainImagesResponse = async (recipeIds) => {
         );
         return response.data;
     } catch (error) {
-        console.error('/main-images failed', error.response?.data || error);
+        console.warn('/main-images failed', error.response?.data || error);
         return null;
     }
 };

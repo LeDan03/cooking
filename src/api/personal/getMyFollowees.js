@@ -9,7 +9,7 @@ const followeesResponse = async () => {
         }
         else return false;
     } catch (error) {
-        console.error('/followees failed', error);
+        console.warn('/followees failed', error);
         return null;
     }
 }

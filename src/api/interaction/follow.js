@@ -5,7 +5,7 @@ const followActResponse = async(followeeId)=>{
         const response = await axiosClient.post(`/api/accounts/me?followeeId=${followeeId}`);
         return response;
     } catch (error) {
-        console.error("/me follow failed", error);
+        console.warn("/me follow failed", error);
         return false;
     }
 }

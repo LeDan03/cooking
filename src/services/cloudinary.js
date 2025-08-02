@@ -11,7 +11,7 @@ export const uploadImageToCloudinary = async (file) => {
             'https://api.cloudinary.com/v1_1/dkmql9swy/image/upload',
             formData
         );
-        return response.data.secure_url;
+        return { "secureUrl": response.data.secure_url, "publicId": response.data.public_id };
     } catch (error) {
         console.error('Upload failed:', error);
         throw error;

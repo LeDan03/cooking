@@ -7,6 +7,8 @@ import Register from "../pages/Register";
 import PersonalPage from "../pages/PersonalPage"
 import RecipeDetail from "../pages/RecipeDetail";
 import CreateRecipe from "../pages/CreateRecipe";
+import AdminDashboard from "../pages/Manage";
+import SearchAccount from "../pages/SearchAccount";
 import App from '../App'
 
 export const router = createBrowserRouter([
@@ -17,7 +19,22 @@ export const router = createBrowserRouter([
                 path: path.HOME, element: <HomePage />
             },
 
-
+            {
+                path: path.PERSONAL,
+                element: <PersonalPage />
+            },
+            {
+                path: path.RECIPEDETAIL,
+                element: <RecipeDetail />
+            },
+            {
+                path: path.CREATERECIPE,
+                element: <CreateRecipe />
+            },
+            {
+                path: path.SEARCHACCOUNT,
+                element: <SearchAccount />
+            }
         ]
     },
     {
@@ -28,17 +45,9 @@ export const router = createBrowserRouter([
         path: path.REGISTER,
         element: <Register />
     },
+    {
+        path: path.ADMIN,
+        element: <AdminDashboard />
+    },
 
-    {
-        path: path.PERSONAL,
-        element: <PersonalPage />
-    },
-    {
-        path: path.RECIPEDETAIL,
-        element: <RecipeDetail />
-    },
-    {
-        path: path.CREATERECIPE,
-        element: <CreateRecipe />
-    }
 ])

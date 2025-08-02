@@ -11,7 +11,7 @@ const recipesResponse = async () => {
             return [];
         }
     } catch (error) {
-        console.error('/recipes/me/recipes failed', error);
+        console.warn('/recipes/me/recipes failed', error);
         return null;
     }
 }
