@@ -5,18 +5,18 @@ const messagesResponse = async () => {
         const response = await axiosClient.get('/api/accounts/me/messages');
         return response;
     } catch (error) {
-        console.error(error.response.data.message);
-        return null;
+        console.warn("Tải thông báo cá nhân thất bại", error);
+        return [];
     }
 }
 
-export const readMessageResponse = async (id) => {
+export const readMessageResponse = async (messageId) => {
     try {
-        const response = await axiosClient.put(`/api/accounts/me/message/${id}`);
+        const response = await axiosClient.put(`/api/accounts/me/message?messageId=${messageId}`);
         return response;
     } catch (error) {
-        console.error(error.response.data.message);
-        return error.response.data;
+        console.warn("Đọc thông báo thất bại",error);
+        return null;
     }
 }
 

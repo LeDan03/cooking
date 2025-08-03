@@ -327,30 +327,123 @@ const CreateRecipe = () => {
         };
     };
 
+    // const handleSubmit = async (e, isPublic) => {
+    //     e.preventDefault();
+    //     if (isLoading) return;
+    //     if (title.trim() === '' || content.trim() === '' || categoryId === "" || difficultyId === "" || ingredients.length <= 0) {
+    //         alert("Xin hãy nhập đủ thông tin");
+    //         return;
+    //     }
+
+    //     const hasInvalidIngredient = ingredients.some(
+    //         ing => !ing.name.trim() || !ing.amount.trim() || !ing.unitId
+    //     );
+    //     if (ingredients.length === 0 || hasInvalidIngredient) {
+    //         alert("Hãy đảm bảo tất cả nguyên liệu đều có tên, số lượng và đơn vị");
+    //         return;
+    //     }
+
+    //     try {
+    //         setIsLoading(true);
+    //         setLoadingProgress(10);
+    //         setLoadingMessage("Đang chuẩn bị...");
+
+    //         const { 'recipeImageDtos': recipeImageDtos, 'stepImageDtos': stepImageDtos } = await uploadImages();
+
+    //         setLoadingMessage("Đang xử lý dữ liệu...");
+    //         setLoadingProgress(80);
+
+    //         const updatedSteps = steps.map((step, idx) => {
+    //             const stepDto = stepImageDtos.shift();
+    //             if (step.file) {
+    //                 return { ...step, imageUrl: stepDto.secureUrl, imagePublicId: stepDto.publicId, file: undefined };
+    //             }
+    //             return step;
+    //         });
+
+    //         const accountId = useAuthStore.getState().currentUser.id;
+    //         const recipeData = {
+    //             title,
+    //             content,
+    //             accountId,
+    //             imageDtos: recipeImageDtos,
+    //             categoryId,
+    //             difficultyId,
+    //             prepTime,
+    //             cookingTime,
+    //             servings,
+    //             requirePublic: isPublic,
+    //             ingredients,
+    //             steps: updatedSteps,
+    //             requireFeatured: featured
+    //         };
+
+    //         setLoadingMessage("Đang tạo công thức...");
+    //         setLoadingProgress(90);
+
+    //         const result = await createRecipeResponse(recipeData);
+    //         if (result) {
+    //             setLoadingMessage("Hoàn thành!");
+    //             setLoadingProgress(100);
+    //             setTimeout(() => {
+    //                 navigate(path.PERSONAL);
+    //             }, 500);
+    //         }
+    //     } catch (error) {
+    //         setIsLoading(false);
+    //         setLoadingProgress(0);
+    //         setLoadingMessage("");
+    //         alert('ERROR: có lỗi khi tạo recipe');
+    //     }
+    // }
+
     const handleSubmit = async (e, isPublic) => {
         e.preventDefault();
         if (isLoading) return;
-        if (title.trim() === '' || content.trim() === '' || categoryId === "" || difficultyId === "" || ingredients.length <= 0) {
-            alert("Xin hãy nhập đủ thông tin");
+
+        // Kiểm tra title, content, category, difficulty
+        if (
+            title.trim() === '' ||
+            content.trim() === '' ||
+            categoryId === "" ||
+            difficultyId === ""
+        ) {
+            alert("Xin hãy nhập đủ thông tin tiêu đề, nội dung, danh mục và độ khó");
             return;
         }
+
+        // Kiểm tra ingredient: không để rỗng bất kỳ trường nào
+        const hasInvalidIngredient = ingredients.some(
+            ing => !ing.name.trim() || !ing.amount.trim() || !ing.unitId
+        );
+        if (ingredients.length === 0 || hasInvalidIngredient) {
+            alert("Hãy đảm bảo tất cả nguyên liệu đều có tên, số lượng và đơn vị");
+            return;
+        }
+
         try {
             setIsLoading(true);
             setLoadingProgress(10);
             setLoadingMessage("Đang chuẩn bị...");
 
-            const { 'recipeImageDtos': recipeImageDtos, 'stepImageDtos': stepImageDtos } = await uploadImages();
+            const { recipeImageDtos, stepImageDtos } = await uploadImages();
 
             setLoadingMessage("Đang xử lý dữ liệu...");
             setLoadingProgress(80);
 
-            const updatedSteps = steps.map((step, idx) => {
-                const stepDto = stepImageDtos.shift();
-                if (step.file) {
-                    return { ...step, imageUrl: stepDto.secureUrl, imagePublicId: stepDto.publicId, file: undefined };
-                }
-                return step;
-            });
+            // Xử lý steps: loại bỏ step rỗng cả content và image
+            const filteredSteps = steps
+                .filter(step => step.content.trim() !== "" || step.file || step.imageUrl)
+                .map((step, idx) => {
+                    const stepDto = step.file ? stepImageDtos.shift() : null;
+                    return {
+                        ...step,
+                        stt: idx + 1,
+                        imageUrl: step.file ? stepDto?.secureUrl : step.imageUrl || null,
+                        imagePublicId: step.file ? stepDto?.publicId : step.imagePublicId || null,
+                        file: undefined,
+                    };
+                });
 
             const accountId = useAuthStore.getState().currentUser.id;
             const recipeData = {
@@ -365,7 +458,7 @@ const CreateRecipe = () => {
                 servings,
                 requirePublic: isPublic,
                 ingredients,
-                steps: updatedSteps,
+                steps: filteredSteps,
                 requireFeatured: featured
             };
 
@@ -386,7 +479,8 @@ const CreateRecipe = () => {
             setLoadingMessage("");
             alert('ERROR: có lỗi khi tạo recipe');
         }
-    }
+    };
+
 
     // Loading Overlay Component
     const LoadingOverlay = () => (

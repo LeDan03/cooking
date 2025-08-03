@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import useMessageBoxStore from '../store/useMessageBoxStore';
-import useCommonStore from '../store/useCommonStore';
+import usePersonalStore from '../store/usePersonalStore';
 
 // API
 import { readMessageResponse } from '../api/personal/messages';
 import { HttpStatusCode } from 'axios';
+import useAuthStore from '../store/useAuthStore';
 
 // Component hiển thị chi tiết message
 const MessageDetail = ({ message, onClose }) => {
@@ -42,7 +43,7 @@ const MessageDetail = ({ message, onClose }) => {
                             </h3>
                             <p className="text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-lg">{message.content}</p>
                         </div>
-                        <div>
+                        {/* <div>
                             <h3 className="font-semibold text-gray-700 mb-3 flex items-center">
                                 <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -50,7 +51,7 @@ const MessageDetail = ({ message, onClose }) => {
                                 Lý do
                             </h3>
                             <p className="text-gray-600 bg-green-50 p-4 rounded-lg">{message.reasonId}</p>
-                        </div>
+                        </div> */}
                         <div className="pt-4 border-t border-gray-200">
                             <p className="text-sm text-gray-500 flex items-center">
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,8 +70,11 @@ const MessageDetail = ({ message, onClose }) => {
 // Component MessageBox chính - props interface for external use
 const MessageBox = () => {
     const { messageBoxOpen: isOpen, setMessageBoxOpen } = useMessageBoxStore();
-    const {messages, setMessages} = useCommonStore();
+    const messages = usePersonalStore((state) => state.messages);
+    const setMessages = usePersonalStore((state) => state.setMessages);
     const [selectedMessage, setSelectedMessage] = useState(null);
+
+    // const currentUser = useAuthStore((state) => state.currentUser);
 
     const closeMessageBox = () => {
         setMessageBoxOpen(false)
@@ -132,7 +136,9 @@ const MessageBox = () => {
         }
     };
 
-    const unreadCount = messages.length > 0 ? messages.filter(m => !m.read).length : 0;
+    const unreadCount = useMemo(() => {
+        return Array.isArray(messages) ? messages.filter(m => !m.read).length : 0;
+    }, [messages]);
 
     if (!isOpen) return null;
 
@@ -182,7 +188,7 @@ const MessageBox = () => {
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
-                                    {messages.length > 0 && messages.map((message) => (
+                                    {Array.isArray(messages) && messages.map((message) => (
                                         <div
                                             key={message.id}
                                             onClick={() => handleMessageClick(message)}

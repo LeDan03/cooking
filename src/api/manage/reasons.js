@@ -6,6 +6,7 @@ const reasonsResponse = async () => {
         return response;
     } catch (error) {
         console.warn("/REASONS failed", error);
+        return null;
     }
 }
 
@@ -15,7 +16,8 @@ export const createReasonResponse = async (reasonRequest) => {
         return response;
     } catch (error) {
         console.warn("CREATE REASONS failed", error);
-        alert(error.response.data.message)
+        // alert(error.response.data.message)
+        return null;
     }
 }
 
@@ -25,7 +27,8 @@ export const deleteReasonResponse = async (id) => {
         return response;
     } catch (error) {
         console.warn("DELETE REASONS failed", error);
-        alert(error.response.data.message)
+        // alert(error.response.data.message)
+        return null;
     }
 }
 

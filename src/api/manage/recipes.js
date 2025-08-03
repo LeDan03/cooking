@@ -19,9 +19,9 @@ export const approveRecipeResponse = async (recipeId) => {
     }
 }
 
-export const rejectRecipeResponse = async (messageRequest) => {
+export const rejectRecipeResponse = async ({ accountId, messageId, recipeId }) => {
     try {
-        const response = await axiosClient.post("/api/accounts/admin/rejection", messageRequest);
+        const response = await axiosClient.post(`/api/accounts/admin/messages/recipe/rejection?accountId=${accountId}&messageId=${messageId}&recipeId=${recipeId}`);
         return response;
     } catch (error) {
         console.warn("REJECT recipe failed", error);

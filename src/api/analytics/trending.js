@@ -10,7 +10,7 @@ const getThisWeekTrending = async()=>{
             return;
         }
         console.warn("Lấy dữ liệu trending thất bại", error.response);
-        return error;
+        return null;
     }
 }
 

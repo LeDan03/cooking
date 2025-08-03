@@ -9,19 +9,16 @@ const useCommonStore = create(
       recipes: [],
       categories: [],
       difficulties: [],
-      messages: [],
 
       /* --- setter chính --- */
       setRecipes: (list) => set({ recipes: list }),
       setCategories: (list) => set({ categories: list }),
       setDifficulties: (list) => set({ difficulties: list }),
-      setMessages: (list) => set({ messages: list }),
 
       clearStore: () => set({
         recipes: [],
         categories: [],
         difficulties: [],
-        messages: []
       }),
       /* --- patch 1 recipe (dùng cho love/unlove, comment…) --- */
       patchRecipe: (id, patch) =>

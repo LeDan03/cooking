@@ -167,7 +167,8 @@ const SimilarRecipes = ({ recipeId, keyword = "" }) => {
                   className="bg-white rounded-lg xs:rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100 overflow-hidden cursor-pointer group"
                   onClick={() => {
                     sessionStorage.setItem("selectedRecipe", JSON.stringify(recipe));
-                    navigate(path.RECIPEDETAIL);
+                    // navigate(path.RECIPEDETAIL);
+                    window.location.href = path.RECIPEDETAIL;
                   }}
                 >
                   {/* Recipe Image */}
@@ -645,7 +646,7 @@ const RecipeDetail = () => {
                   </button>
                 )}
 
-                {currentUser.id === comment.commenter.id && (
+                {currentUser?.id === comment.commenter.id && (
                   <button
                     onClick={() => onDelete(comment.id)}
                     className="flex items-center space-x-1 text-gray-500 hover:text-red-600 transition-colors"
@@ -1054,7 +1055,7 @@ const RecipeDetail = () => {
           </div>
         </div>
       </div>
-      {lastRecipeId && (
+      {currentUser && lastRecipeId && (
         <SimilarRecipes
           recipeId={lastRecipeId}
           keyword={recipeData.title?.trim().split(" ")[0]}

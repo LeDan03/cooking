@@ -17,9 +17,13 @@ const Sidebar = () => {
   const handleLogout = async () => {
     const result = await logOutResponse();
     if (result.status === HttpStatusCode.Ok) {
-      sessionStorage.clear();
+      sessionStorage.removeItem("common-storage");
+
+      sessionStorage.removeItem("personal-storage");
+
+      sessionStorage.removeItem("selectedRecipe");
+
       useAuthStore.getState().clearCurrentUser();
-      useCommonStore.getState().clearStore();
       usePersonalStore.getState().clearStore();
       useTrendingStore.getState().clearStore();
       navigate(path.HOME);

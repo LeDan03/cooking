@@ -4,17 +4,17 @@ import useAuthStore from "../store/useAuthStore";
 import useSidebarStore from "../store/useSidebarStore";
 import useMessageBoxStore from "../store/useMessageBoxStore";
 import path from "../utils/path";
-import useCommonStore from "../store/useCommonStore";
+import usePersonalStore from "../store/usePersonalStore";
 import { useMemo } from "react";
 
 const Header = () => {
     const currentUser = useAuthStore((state) => state.currentUser);
     const { setSidebarOpen } = useSidebarStore();
     const { setMessageBoxOpen } = useMessageBoxStore();
-    const messages = useCommonStore((state) => state.messages);
+    const messages = usePersonalStore((state) => state.messages);
     const unreadMessagesCount = useMemo(() => {
-        return messages.filter(m => !m.read).length;
-    },[messages])
+        return Array.isArray(messages) ? messages.filter(m => !m.read).length : 0;
+    }, [messages])
 
     const navigate = useNavigate();
 

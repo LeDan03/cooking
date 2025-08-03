@@ -28,7 +28,7 @@ axiosClient.interceptors.response.use(
       error.response?.status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url.includes("/auth/refresh-access-token") &&
-      currentUser // ❗ chỉ gọi refresh nếu đang login
+      currentUser // chỉ gọi refresh nếu đang login
     ) {
       originalRequest._retry = true;
 

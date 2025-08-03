@@ -68,13 +68,13 @@ const HomePage = () => {
     recipes,
     categories,
     difficulties,
-    messages,
     setRecipes,
     setCategories,
     setDifficulties,
-    setMessages
   } = useCommonStore();
   const { setSavedRecipes, setLovedRecipes } = usePersonalStore();
+
+  const setMessages = usePersonalStore((state) => state.setMessages);
 
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.currentUser);
@@ -184,7 +184,7 @@ const HomePage = () => {
   useEffect(() => {
     let isMounted = true;
     (async () => {
-      try {
+      // try {
         const list = await recipesResult();
         Array.isArray(list.recipeResponses) && setRecipes(list.recipeResponses);
 
@@ -210,12 +210,11 @@ const HomePage = () => {
           diffRes && setDifficulties(diffRes);
           mess && setMessages(mess.data);
 
-          console.log("My data", info);
-          console.log("loved list", loved);
+          // console.log("My messages", mess);
         }
-      } catch (err) {
-        console.warn("Không thể tải dữ liệu người dùng:", err);
-      }
+      // } catch (err) {
+      //   console.warn("Không thể tải dữ liệu người dùng:", err);
+      // }
     })();
     return () => {
       isMounted = false;
@@ -233,7 +232,7 @@ const HomePage = () => {
 
   useEffect(() => {
     const id = setInterval(async () => {
-      console.log("REFRESH RECIPES");
+      // console.log("REFRESH RECIPES");
       const list = await recipesResult();
       if (Array.isArray(list)) setRecipes(list.recipeResponses);
     }, 300000); //5p
@@ -431,7 +430,7 @@ const HomePage = () => {
                         >
                           <div className="relative">
                             <ImageWithFallback
-                              src={recipe.image}
+                              src={recipe.imagesUrl[0]}
                               alt={recipe.title}
                               className="w-15 h-15 rounded-lg object-cover border-2 border-white shadow-sm group-hover:scale-105 transition-transform duration-200"
                             />

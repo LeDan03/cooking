@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Eye, Plus, Trash2, User, FileText, Grid, Building2, CheckCircle, XCircle, MessageSquare,
   ChevronDown, AlertCircle, BarChart2, LogOut
@@ -18,13 +18,13 @@ import accountsResponse, { toggleAccountStatusResponse } from '../api/manage/acc
 import reasonsResponse from '../api/manage/reasons';
 import categoriesResult from '../api/recipe/recipe/getAllCategory';
 
-
-import ChartInsightPanel from '../component/ChartInsightPanel';
 import createMessageResponse,
 {
   adminMessagesResponse,
   deleteMessageResponse,
-  sendToAllResponse
+  sendToAllResponse,
+  togglePinnedMessage,
+  sendMessageToUser
 } from '../api/manage/messages';
 
 import {
@@ -37,6 +37,9 @@ import getAllIllegalWordsResponse from '../api/manage/illegalWords';
 
 import YearInput from '../component/YearInput';
 import Modal from '../component/Modal';
+import ChartInsightPanel from '../component/ChartInsightPanel';
+import CustomButton from '../component/CustomButton';
+
 
 import { HttpStatusCode } from 'axios';
 import useAuthStore from '../store/useAuthStore';
@@ -56,13 +59,19 @@ const AdminDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
   const [selectedArticle, setSelectedArticle] = useState(null);
-  const [warningData, setWarningData] = useState({ title: "", content: '', reasonId: 0, accountIds: [], recipeId: 0 });
+  const [warningData, setWarningData] = useState({ accountId: 0, messageId: 0, recipeId: 0 });
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newUnitName, setNewUnitName] = useState('');
-  const [newMessageData, setNewMessageData] = useState({ title: '', content: '', accountIds: [], recipeId: -1, reasonId: -1 });
+  const [newMessageData, setNewMessageData] = useState({ title: '', content: '', recipeId: -1, reasonId: -1 });
   const [reasons, setReasons] = useState([]);
+  // hỗ trợ duyệt bài
+  const [selectedReasonId, setSelectedReasonId] = useState(0);
 
   const [messages, setMessages] = useState([]);
+  const [messagesPage, setMessagesPage] = useState(0);
+  const [messagesSize, setMessagesSize] = useState(10);
+  const [messagesTotalPages, setMessagesTotalPages] = useState(0);
+
   const [articles, setArticles] = useState([]);
   const [categories, setCategories] = useState([]);
   const [usersResponse, setUsersResponse] = useState();
@@ -103,6 +112,7 @@ const AdminDashboard = () => {
   const currentWeek = getWeekNumber(today);
 
   const isValidYear = (year) => /^\d{4}$/.test(year) && +year >= 2000 && +year <= new Date().getFullYear();
+
 
   //Thay đổi cách chọn reason cho admin
   const [showReasonTable, setShowReasonTable] = useState(false);
@@ -194,12 +204,20 @@ const AdminDashboard = () => {
     }
   }
 
-  const loadAdminMessages = async () => {
-    const result = await adminMessagesResponse();
-    if (result && result.status === HttpStatusCode.Ok && result.data.length > 0) {
-      setMessages(result.data);
+  const loadAdminMessages = async (pageNum = messagesPage) => {
+    const result = await adminMessagesResponse(pageNum, messagesSize);
+    if (result && result.status === HttpStatusCode.Ok && result.data.content.length > 0) {
+      setMessages(result.data.content);
+      setMessagesPage(result.data.number);
+      setMessagesTotalPages(result.data.totalPages);
+    } else {
+      // Nếu không có dữ liệu, vẫn cần clear để hiển thị trạng thái đúng
+      setMessages([]);
+      setMessagesPage(0);
+      setMessagesTotalPages(1);
     }
-  }
+  };
+
 
   const handleDeleteMessage = async (id) => {
     const result = await deleteMessageResponse(id);
@@ -222,6 +240,28 @@ const AdminDashboard = () => {
       )
     }
   }
+  const handleTogglePinned = async (id) => {
+    const result = await togglePinnedMessage(id);
+    if (result && result.status === HttpStatusCode.Ok) {
+      setMessages(prev => {
+        const newMessages = prev.map(m => {
+          if (m.id === id) {
+            // toggle pinned trạng thái cho message vừa click
+            return { ...m, pinned: !m.pinned };
+          }
+          // Nếu message khác hiện đang pinned thì bỏ pinned nó
+          // (chỉ thực hiện nếu message mới vừa được ghim)
+          if (m.pinned === true) {
+            return { ...m, pinned: false };
+          }
+
+          return m;
+        });
+        return newMessages;
+      });
+    }
+  };
+
 
   const handleViewArticle = (article) => {
     setSelectedArticle(article);
@@ -240,53 +280,16 @@ const AdminDashboard = () => {
   };
 
   const handleViolation = () => {
-    setModalType('warning');
+    setModalType('select-message');
   };
 
   const handleSendWarning = async () => {
-    if (warningData.reasonId === 0) {
-      alert("Vui lòng chọn đủ thông tin");
-      return;
+    const result = await rejectRecipeResponse(warningData);
+    if (result && result.status === HttpStatusCode.Ok) {
+      setSelectedArticle(null);
+      setArticles(articles.filter(a => a.id !== warningData.recipeId));
+      setShowModal(false);
     }
-    if (activeTab === 'articles' && selectedArticle === null) {
-      alert("Vui lòng chọn đủ thông tin");
-      return;
-    }
-    else if (activeTab === 'usersResponse' && selectedUserId === 0) {
-      alert("Vui lòng chọn đủ thông tin");
-      return;
-    }
-    let updatedWarning;
-
-    let result;
-    if (activeTab === 'articles') {
-      updatedWarning = {
-        ...warningData,
-        recipeId: selectedArticle.id,
-        accountIds: [...warningData.accountIds, selectedArticle.authorId]
-      };
-      result = await rejectRecipeResponse(updatedWarning);
-    } else {
-      updatedWarning = {
-        ...warningData,
-        recipeId: 0,
-        accountIds: [...warningData.accountIds, selectedUserId]
-      };
-      result = await createMessageResponse(updatedWarning);
-    }
-    if (result.data.status !== HttpStatusCode.Ok) {
-      console.warn(result.message);
-      return;
-    }
-    if (activeTab === 'articles') {
-      setArticles(articles.filter(a => a.id !== selectedArticle.id));
-    } else if (activeTab === 'usersResponse') {
-      setSelectedUserId(0);
-    }
-    setShowModal(false);
-    setSelectedArticle(null);
-    setWarningData({ title: '', content: '', reasonId: 0, accountIds: [], recipeId: 0 });
-    navigate(path.ADMIN)
   };
 
   const handleAddMessage = async (reasonId) => {
@@ -299,7 +302,7 @@ const AdminDashboard = () => {
     if (result && result.status === HttpStatusCode.Created) {
       setMessages([result.data, ...messages]);
     }
-    setNewMessageData({ title: '', content: '', accountIds: [], recipeId: -1, reasonId: -1 });
+    setNewMessageData({ title: '', content: '', recipeId: -1, reasonId: -1 });
     setShowModal(false);
   };
 
@@ -354,7 +357,8 @@ const AdminDashboard = () => {
 
   const handleAddUnit = async () => {
     const unitRequestName = newUnitName.trim();
-    if (unitRequestName === '' || unitRequestName === null) return
+    if (unitRequestName === '' || unitRequestName === null) return;
+    console.log("Tên unit gửi đi back end", unitRequestName);
     const isDuplicate = units.some(unit =>
       unit.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === unitRequestName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     );
@@ -365,24 +369,23 @@ const AdminDashboard = () => {
     }
     const result = await createUnitResponse({ name: unitRequestName });
     if (result.status === HttpStatusCode.Created) {
-      setUnits([...units, {
+      setUnits([{
         id: units.length + 1,
         name: unitRequestName,
-        isUsed: false
-      }]);
+        // isUsed: false
+      }, ...units]);
       setNewUnitName('');
       setShowModal(false);
     }
   };
 
-  const handleResolveToggleAccountStatus = async (userId) => {
-    const user = usersResponse.accounts.find(u => u.id === userId);
-    // 
+  const handleResolveToggleAccountStatus = async (user) => {
     if (user.status === 'active') {
-      setModalType('disableUser');
+      setModalType('select-message');
+      setWarningData({ ...warningData, accountId: user.id, recipeId: 0 });
       setShowModal(true);
     } else {
-      await handleToggleAccountStatus(userId, true);//true la disable->active
+      await handleToggleAccountStatus(user.id, true);//true la disable->active
       // const updatedAccounts = usersResponse.accounts.map(u =>
       //   u.id === userId ? { ...u, status: 'active' } : u
       // );
@@ -390,9 +393,29 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleControlSendMessage = async () => {
+    console.log("Warning data", warningData);
+    if (warningData.messageId === 0) {
+      alert("Vui lòng chọn thông báo cần gửi");
+      return
+    }
+    const isToggleUserStatus = warningData.recipeId === 0;
+    if (isToggleUserStatus) {
+      const active = usersResponse.accounts.find(a => a.id === selectedUserId).status === 'active'
+      handleToggleAccountStatus(selectedUserId, active);
+    } else {
+
+      handleSendWarning();
+    }
+  }
+
+  const handleSendDisableMessageToUser = async () => {
+    await sendMessageToUser(warningData);
+  }
+
   const handleToggleAccountStatus = async (accountId, active) => {
     if (!active) {
-      handleSendWarning();
+      handleSendDisableMessageToUser();
     }
     const result = await toggleAccountStatusResponse(accountId);
     if (result.status === HttpStatusCode.Ok) {
@@ -402,22 +425,13 @@ const AdminDashboard = () => {
       setUsersResponse((prev) => ({
         ...prev,
         accounts: prev.accounts.map((u) =>
-          u.id === accountId ? { ...u, status: active ? "active" : "disable" } : u
+          u.id === accountId ? { ...u, status: newStatus } : u
         ),
       }));
       setShowModal(false);
-      setWarningData({ title: '', content: '', reasonId: 0, accountIds: [], recipeId: 0 });
+      setWarningData({ accountId: 0, messageId: 0, recipeId: 0 });
     }
   };
-
-  const handleCreateNotification = async () => {
-    const result = await createMessageResponse(warningData);
-    if (result && result.status === HttpStatusCode.Created) {
-      setMessages([result.data, ...messages]);
-      setWarningData({ title: "", content: '', reasonId: 0, accountIds: [], recipeId: 0 });
-      setShowModal(false);
-    }
-  }
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -449,15 +463,21 @@ const AdminDashboard = () => {
     }
   }, [currentUser]);
 
-  useEffect(() => {
-    setWarningData({
-      title: '',
-      content: '',
-      reasonId: 0,
-      accountIds: [],
-      recipeId: 0
-    });
-  }, [modalType]);
+  // useEffect(() => {
+  //   setWarningData({ accountId: 0, reasonId: 0, recipeId: 0 });
+  // }, [modalType]);
+
+  const filteredMessages = useMemo(() => {
+    return selectedReasonId === 0 ? messages : messages.filter((m) => m.reasonId === selectedReasonId);
+  }, [messages, selectedReasonId])
+
+  const isAdminMessage = (message) => {
+    return reasons.find(r => r.id === message.reasonId).relatedEntityType === 'ADMIN';
+  }
+
+  const isRecipeMessage = (message) => {
+    return reasons.find(r => r.id === message.reasonId).relatedEntityType === 'RECIPE';
+  }
 
   return (
     <div className="relative min-h-screen flex flex-col bg-gray-200" style={{ fontFamily: "UVN Giong Song" }}>
@@ -481,11 +501,11 @@ const AdminDashboard = () => {
             {[
               { id: 'statistics', label: 'Thống kê', icon: BarChart2 },
               { id: 'articles', label: 'Công thức chờ', icon: FileText },
+              { id: 'messages', label: 'Thông báo', icon: MessageSquare },
               { id: 'categories', label: 'Phân loại', icon: Grid },
               { id: 'usersResponse', label: 'Người dùng', icon: User },
               { id: 'units', label: 'Đơn vị', icon: Building2 },
-              { id: 'reasons', label: 'Lý do', icon: AlertCircle },
-              { id: 'messages', label: 'Thông báo', icon: MessageSquare }
+              { id: 'reasons', label: 'Lý do', icon: AlertCircle }
             ].map(tab => {
               const Icon = tab.icon;
               return (
@@ -636,7 +656,10 @@ const AdminDashboard = () => {
                         </div>
                         {/* Nút xem */}
                         <button
-                          onClick={() => handleViewArticle(article)}
+                          onClick={() => {
+                            setWarningData({ ...warningData, accountId: article.authorId, recipeId: article.id });
+                            handleViewArticle(article)
+                          }}
                           className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-500 transition-all duration-200 shadow-lg hover:shadow-xl"
                         >
                           <Eye size={18} />
@@ -731,7 +754,7 @@ const AdminDashboard = () => {
                         {user.role !== 'ADMIN' && <button
                           onClick={() => {
                             setSelectedUserId(user.id);
-                            handleResolveToggleAccountStatus(user.id)
+                            handleResolveToggleAccountStatus(user)
                           }}
                           className={`px-6 py-2 rounded-xl font-medium transition-all duration-200 ${user.status === 'active'
                             ? 'bg-red-600 text-white hover:bg-red-500'
@@ -915,7 +938,9 @@ const AdminDashboard = () => {
             <div className="bg-indigo-950 rounded-xl shadow-2xl border border-gray-700">
               <div className="p-8">
                 <div className="flex justify-between items-center mb-6 border-b border-gray-600 pb-4">
-                  <h2 className="text-2xl font-bold text-white">Quản lý thông báo quản trị</h2>
+                  <div className='flex items-center space-x-2 text-2xl'>
+                    <h2 className="text-2xl font-bold text-white">Quản lý thông báo quản trị</h2>
+                  </div>
                   <button
                     onClick={() => { setModalType('addMessage'); setShowModal(true); }}
                     className="flex items-center space-x-2 bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-500 transition-all duration-200 shadow-lg hover:shadow-xl"
@@ -926,25 +951,36 @@ const AdminDashboard = () => {
                 </div>
                 <div className="space-y-4">
                   {messages.length > 0 && messages.map(message => (
-                    <div key={message.id} className="bg-indigo-900 border border-gray-600 rounded-xl p-6 hover:bg-gray-800 transition-all duration-200">
+                    <div key={message.id}
+                      id={`message-${message.id}`}
+                      className={`border border-gray-600 rounded-xl p-6  transition-all duration-200 
+                    ${isAdminMessage(message) ? 'bg-indigo-500 hover:bg-gray-800' : 'bg-white hover:bg-gray-300'}`}>
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h3 className="text-xl text-white font-semibold mb-2">{message.title}</h3>
-                          <p className="text-gray-300 mb-3">{message.content}</p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-400">
+                          <h3 className={`text-xl  font-semibold mb-2 ${isAdminMessage(message) ? 'text-white' : 'text-indigo-900'}`}>{message.title}</h3>
+                          <p className={` mb-3 ${isAdminMessage(message) ? 'text-gray-100' : 'text-indigo-900'}`}>{message.content}</p>
+                          <div className={`flex items-center space-x-4 text-sm ${isAdminMessage(message) ? 'text-gray-200' : 'text-black'}`}>
                             <span>Lý do: {getReasonText(message.reasonId)}</span>
                             <span>•</span>
                             <span>Tạo lúc: {formatDate(message.createdAt)}</span>
                           </div>
                         </div>
                         <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => { handleSendToAll(message.id) }}
-                            className={`px-4 py-2 rounded-lg font-medium transition-all 
+                          {!isRecipeMessage(message) && (
+                            <button
+                              onClick={() => {
+                                if (isAdminMessage(message)) {
+                                  handleSendToAll(message.id)
+                                } else {
+                                  handleTogglePinned(message.id)
+                                }
+                              }}
+                              className={`px-4 py-2 rounded-lg font-medium transition-all 
                             duration-200 bg-blue-800 border-1 border-blue-100 text-white hover:bg-indigo-950`}
-                          >
-                            {message.isSentToAll ? 'All' : 'Send to all'}
-                          </button>
+                            >
+                              {message.pinned === null ? (message.isSentToAll ? 'Đã gửi cho tất cả' : 'Gửi cho tất cả')
+                                : (message.pinned ? 'Ẩn' : 'Thông báo')}
+                            </button>)}
                           <button
                             onClick={() => { handleDeleteMessage(message.id) }}
                             className="text-red-500 hover:text-red-700 bg-white p-2 rounded-xl transition-all duration-200"
@@ -955,6 +991,26 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   ))}
+                  <div className="flex justify-center mt-6 space-x-2">
+                    <button
+                      onClick={() => loadAdminMessages(messagesPage - 1)}
+                      disabled={messagesPage === 0}
+                      className="px-3 py-1 bg-white text-black rounded disabled:opacity-50"
+                    >
+                      Trước
+                    </button>
+                    <span className="px-3 py-1 text-white">
+                      Trang {messagesPage + 1} / {messagesTotalPages}
+                    </span>
+                    <button
+                      onClick={() => loadAdminMessages(messagesPage + 1)}
+                      disabled={messagesPage + 1 >= messagesTotalPages}
+                      className="px-3 py-1 bg-white text-black rounded disabled:opacity-50"
+                    >
+                      Sau
+                    </button>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -965,7 +1021,7 @@ const AdminDashboard = () => {
         {showModal && (
           <Modal>
             {modalType === 'view' && selectedArticle && (
-              <div className="p-8 bg-gray-800 rounded-xl shadow-2xl max-w-4xl mx-auto">
+              <div className="p-8 bg-gray-800 rounded shadow-2xl max-w-4xl mx-auto">
                 <div className="flex justify-between items-center mb-6 border-b border-gray-600 pb-4">
                   <h2 className="text-3xl font-bold text-white">{selectedArticle.title}</h2>
                   <button
@@ -1186,11 +1242,11 @@ const AdminDashboard = () => {
               </div>
             )}
 
-
-            {modalType === 'warning' && (
-              <div className="p-8 bg-gray-800 text-white">
+            {modalType === 'select-message' && (
+              <div className="p-8 bg-gray-800 text-white max-w-4xl mx-auto rounded shadow-2xl">
+                {/* Header */}
                 <div className="flex justify-between items-center mb-6 border-b border-gray-600 pb-4">
-                  <h2 className="text-2xl font-bold">GỬI THÔNG BÁO</h2>
+                  <h2 className="text-2xl font-bold">Chọn tin nhắn cảnh báo</h2>
                   <button
                     onClick={() => setShowModal(false)}
                     className="text-gray-400 hover:text-white transition-colors"
@@ -1199,62 +1255,43 @@ const AdminDashboard = () => {
                   </button>
                 </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-xl font-medium mb-3">Tiêu đề</label>
-                    <input
-                      type="text"
-                      value={warningData.title}
-                      onChange={(e) => setWarningData({ ...warningData, title: e.target.value })}
-                      className="w-full p-4 bg-gray-700 border border-gray-600 text-lg rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                      placeholder="Nhập tiêu đề cảnh báo"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xl font-medium mb-3">Nội dung</label>
-                    <textarea
-                      value={warningData.content}
-                      onChange={(e) => setWarningData({ ...warningData, content: e.target.value })}
-                      className="w-full p-4 bg-gray-700 border text-lg border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
-                      rows={4}
-                      placeholder="Nhập nội dung cảnh báo"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xl font-medium mb-3">Lý do</label>
-                    <select
-                      value={warningData.reasonId}
-                      onChange={(e) =>
-                        setWarningData({ ...warningData, reasonId: parseInt(e.target.value) })
-                      }
-                      className="w-full text-lg p-4 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                    >
-                      <option value="" key={0}>Chọn lý do</option>
-                      {reasons.length > 0 && reasons.map((r) => (
-                        <option key={r.id} value={r.id}>{r.message}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex space-x-4 pt-6">
-                    <button
-                      onClick={handleSendWarning}
-                      className="bg-red-600 text-xl text-white px-8 py-3 rounded-xl hover:bg-red-500 transition-all duration-200 shadow-lg"
-                    >
-                      Gửi cảnh báo
-                    </button>
-                    <button
-                      onClick={() => setShowModal(false)}
-                      className="bg-gray-600 text-xl text-white px-8 py-3 rounded-xl hover:bg-gray-500 transition-all duration-200"
-                    >
-                      Hủy
-                    </button>
-                  </div>
+                {/* Bộ lọc Reason */}
+                <div className="mb-6">
+                  <label className="block text-xl font-medium mb-2">Lọc theo nguyên nhân</label>
+                  <select
+                    value={selectedReasonId || '0'}
+                    onChange={(e) => setSelectedReasonId(Number(e.target.value))}
+                    className="w-full text-lg p-4 bg-gray-500 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                  >
+                    <option value="0" key={0}>Tất cả</option>
+                    {reasons.map((r) => (
+                      <option key={r.id} value={r.id}>{r.relatedEntityType}</option>
+                    ))}
+                  </select>
                 </div>
+
+                {/* Danh sách messages */}
+                <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                  {filteredMessages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`border border-gray-600 p-4 rounded-xl transition-all cursor-pointer
+                        ${warningData.messageId === m.id ? 'bg-gray-300' : 'bg-white'}
+                      `}
+                      onClick={() => setWarningData({ ...warningData, messageId: m.id })}
+                    >
+                      <h3 className="text-lg font-semibold text-blue-400">{m.title}</h3>
+                      <p className="text-black mt-2 line-clamp-2">{m.content}</p>
+                      <p className="text-sm text-gray-400 mt-1">🕒 {formatDate(m.createdAt)}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className='flex w-full justify-center items-center mt-4'>
+                  <CustomButton
+                    classname="bg-red-500 hover:bg-red-600 min-w-32 h-10"
+                    content={<span>Gửi thông báo</span>}
+                    onClick={() => handleControlSendMessage()}
+                  /></div>
               </div>
             )}
 
@@ -1342,73 +1379,6 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {modalType === 'disableUser' && (
-              <div className="p-8 bg-gray-800 text-white">
-                <div className="flex justify-between items-center mb-6 border-b border-gray-600 pb-4">
-                  <h2 className="text-2xl font-bold">Vô hiệu hóa tài khoản</h2>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    <XCircle size={28} />
-                  </button>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-xl font-medium mb-3">Tiêu đề</label>
-                    <input
-                      type="text"
-                      value={warningData.title}
-                      onChange={(e) => setWarningData({ ...warningData, title: e.target.value })}
-                      className="w-full p-4 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                      placeholder="Nhập tiêu đề thông báo"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xl font-medium mb-3">Nội dung</label>
-                    <textarea
-                      value={warningData.content}
-                      onChange={(e) => setWarningData({ ...warningData, content: e.target.value })}
-                      className="w-full p-4 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
-                      rows={4}
-                      placeholder="Nhập nội dung thông báo"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xl font-medium mb-3">Lý do</label>
-                    <select
-                      value={warningData.reasonId}
-                      onChange={(e) => setWarningData({ ...warningData, reasonId: e.target.value })}
-                      className="w-full p-4 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                    >
-                      <option value="">Chọn lý do</option>
-                      {reasons.length > 0 && reasons.map((r) => (
-                        <option key={r.id} value={r.id}>{r.message}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex space-x-4 pt-6">
-                    <button
-                      onClick={() => handleToggleAccountStatus(selectedUserId, false)}
-                      className="bg-red-600 text-white px-8 py-3 rounded-xl hover:bg-red-500 transition-all duration-200 shadow-lg"
-                    >
-                      Vô hiệu hóa
-                    </button>
-                    <button
-                      onClick={() => setShowModal(false)}
-                      className="bg-gray-600 text-white px-8 py-3 rounded-xl hover:bg-gray-500 transition-all duration-200"
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {modalType === 'addReason' && (
               <div className="p-8 bg-gray-800 text-white">
                 <div className="flex justify-between items-center mb-6 border-b border-gray-600 pb-4">
@@ -1461,9 +1431,6 @@ const AdminDashboard = () => {
               </div>
             )}
           </Modal>
-
-          //reason table
-
         )}
       </div>
     </div>

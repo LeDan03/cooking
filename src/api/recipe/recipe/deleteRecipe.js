@@ -5,7 +5,7 @@ const deleteResponse = async (recipeId) => {
         const response = await axiosClient.delete(`/api/recipes/${recipeId}`);
         return response;
     } catch (error) {
-        console.error(error.response.data.message);
+        console.error(error.response);
         alert("Xóa bài viết thất bại, có lỗi xảy ra");
         return error.response.data;
     }

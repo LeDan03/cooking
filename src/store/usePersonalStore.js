@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 
 const usePersonalStore = create(
@@ -10,6 +10,7 @@ const usePersonalStore = create(
       savedRecipes: [],
       followers: [],
       followees: [],
+      messages: [],
 
       /* ---------- SETTERS ---------- */
       setLovedRecipes: (list) =>
@@ -36,12 +37,19 @@ const usePersonalStore = create(
           console.log('Updating followees:', list);
           return { followees: list };
         }),
+      setMessages: (list) =>
+        set((state) => {
+          if (shallow(state.messages, list)) return state; // Không cập nhật nếu dữ liệu giống nhau
+          console.log('Updating messages:', list);
+          return { messages: list };
+        }),
 
       clearStore: () => ({
         lovedRecipes: [],
         savedRecipes: [],
         followers: [],
-        followees: []
+        followees: [],
+        messages: []
       }),
 
       /* ---------- PATCHERS ---------- */
@@ -56,7 +64,7 @@ const usePersonalStore = create(
             ? state.lovedRecipes.filter((r) => r.id !== id)
             : [...state.lovedRecipes, { id }];
           if (shallow(state.lovedRecipes, newLovedRecipes)) return state; // Không cập nhật nếu dữ liệu giống nhau
-          console.log('Patching lovedRecipes:', newLovedRecipes);
+          // console.log('Patching lovedRecipes:', newLovedRecipes);
           return { lovedRecipes: newLovedRecipes };
         }),
       patchSaved: (id, isRemoving) =>
@@ -65,19 +73,15 @@ const usePersonalStore = create(
             ? state.savedRecipes.filter((r) => r.id !== id)
             : [...state.savedRecipes, { id }];
           if (shallow(state.savedRecipes, newSavedRecipes)) return state; // Không cập nhật nếu dữ liệu giống nhau
-          console.log('Patching savedRecipes:', newSavedRecipes);
+          // console.log('Patching savedRecipes:', newSavedRecipes);
           return { savedRecipes: newSavedRecipes };
         }),
     })
     ,
     {
       name: 'personal-storage',
-      storage: {
-        getItem: (key) => sessionStorage.getItem(key),
-        setItem: (key, value) => sessionStorage.setItem(key, value),
-        removeItem: (key) => sessionStorage.removeItem(key),
-      },
-    }
+      storage: createJSONStorage(() => sessionStorage),
+    },
   )
 );
 

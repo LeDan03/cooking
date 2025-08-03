@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import customSessionStorage from "./customSessiontStorage";
+
 const useTrendingStore = create(
   persist(
     (set) => ({
@@ -16,7 +18,7 @@ const useTrendingStore = create(
     }),
     {
       name: "trending-storage",
-      getStorage: () => sessionStorage,
+      storage: customSessionStorage
     }
   )
 );

@@ -15,7 +15,7 @@ export const createUnitResponse = async (unitRequest) => {
         return response;
     } catch (error) {
         console.warn("CREATE UNIT failed", error.response);
-        alert(error.response.data.message);
+        // alert(error.response.data.message);
         return error.response.data;
     }
 }
@@ -26,7 +26,7 @@ export const deleteUnitResponse = async (id) => {
         return response;
     } catch (error) {
         console.warn("DELETE UNIT failed", error.response);
-        alert(error.response.data.message);
+        // alert(error.response.data.message);
         return error.response.data;
     }
 }
