@@ -27,6 +27,8 @@ import lovedRecipesResponse from "../api/personal/getMyLovedRecipes";
 import getThisWeekTrending from "../api/analytics/trending";
 import getRecipesByIdsResponse from "../api/recipe/recipe/getRecipesByIds"
 
+import communityMessageResponse from "../api/communitty/message";
+
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/useAuthStore";
 import useCommonStore from "../store/useCommonStore";
@@ -99,6 +101,16 @@ const HomePage = () => {
 
   // tránh re render 
   const hasCurrentUser = useRef(false);
+
+  // thong bao cong dong
+  const [communityMessage, setCommunityMessage] = useState(null);
+
+  const loadCommunityMessage = async () => {
+    const result = await communityMessageResponse();
+    if (result && result.status === HttpStatusCode.Ok && result.data !== null) {
+      setCommunityMessage(result.data);
+    }
+  }
 
   const loadWeekTrending = async () => {
     const result = await getThisWeekTrending();
@@ -185,33 +197,35 @@ const HomePage = () => {
     let isMounted = true;
     (async () => {
       // try {
-        const list = await recipesResult();
-        Array.isArray(list.recipeResponses) && setRecipes(list.recipeResponses);
+      const list = await recipesResult();
+      Array.isArray(list.recipeResponses) && setRecipes(list.recipeResponses);
 
-        const catRes = await categoriesResult();
-        Array.isArray(catRes.data) && setCategories(catRes.data);
+      const catRes = await categoriesResult();
+      Array.isArray(catRes.data) && setCategories(catRes.data);
 
-        if (currentUser && !hasCurrentUser.current) {
-          const [info, saved, loved, diffRes, mess] = await Promise.all([
-            myData(),
-            savedRecipesResponse(),
-            lovedRecipesResponse(),
-            difficultiesResponse(),
-            messagesResponse(),
-          ]);
+      await loadCommunityMessage();
 
-          if (isMounted && info && (!currentUser || currentUser.id !== info.id)) {
-            useAuthStore.getState().setCurrentUser(info);
-            hasCurrentUser.current = true;
-          }
+      if (currentUser && !hasCurrentUser.current) {
+        const [info, saved, loved, diffRes, mess] = await Promise.all([
+          myData(),
+          savedRecipesResponse(),
+          lovedRecipesResponse(),
+          difficultiesResponse(),
+          messagesResponse(),
+        ]);
 
-          saved && setSavedRecipes(saved);
-          loved && setLovedRecipes(loved);
-          diffRes && setDifficulties(diffRes);
-          mess && setMessages(mess.data);
-
-          // console.log("My messages", mess);
+        if (isMounted && info && (!currentUser || currentUser.id !== info.id)) {
+          useAuthStore.getState().setCurrentUser(info);
+          hasCurrentUser.current = true;
         }
+
+        saved && setSavedRecipes(saved);
+        loved && setLovedRecipes(loved);
+        diffRes && setDifficulties(diffRes);
+        mess && setMessages(mess.data);
+
+        // console.log("My messages", mess);
+      }
       // } catch (err) {
       //   console.warn("Không thể tải dữ liệu người dùng:", err);
       // }
@@ -297,7 +311,7 @@ const HomePage = () => {
                       flex items-center justify-center text-lg font-semibold text-orange-600
                       border border-orange-200 rounded-xl shadow-lg shadow-amber-100 mb-4
                       animate-pulse">
-        {publicNotification}
+        {communityMessage && communityMessage.pinned ? communityMessage.content : publicNotification}
       </span>
 
       <div className="p-4 pb-24">
@@ -426,7 +440,7 @@ const HomePage = () => {
                         ${index === 0 ? 'bg-gradient-to-r from-orange-100 to-yellow-300 shadow-md scale-[1.015]' :
                               index === 1 ? 'bg-white shadow-md border border-gray-200 scale-[1.01]' :
                                 'bg-gray-50 shadow-sm'} hover:bg-white`}
-                          onClick={() => currentUser ? handleSelectRecipe(recipe) : navigate(path.LOGIN)}
+                          onClick={() => currentUser ? (recipe && recipe.published ? handleSelectRecipe(recipe) : alert("Công thức này đã chuyển về trạng thái riêng tư")) : navigate(path.LOGIN)}
                         >
                           <div className="relative">
                             <ImageWithFallback

@@ -576,7 +576,7 @@ const PersonalPage = () => {
                           <span className="text-sm">{recipe.cookTime}</span>
                         </div>
                       </div>
-                      {currentUser.id === pageAuthor.id && <div className='flex items-center space-x-2 mt-2'>
+                      {currentUser.id === pageAuthor?.id && <div className='flex items-center space-x-2 mt-2'>
                         <CustomButton
                           classname="ml-auto bg-emerald-600 text-emerald-100 p-2 hover:bg-cyan-800 hover:text-white"
                           content={<span>Chỉnh sửa</span>}
